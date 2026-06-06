@@ -96,7 +96,7 @@ func TestNormalize(t *testing.T) {
 					},
 				},
 			},
-			Error: errors.New("embedding file '/etc/hello-world/config.yaml' for container 'hello': './not_existing.txt': open fixtures/not_existing.txt: no such file or directory"),
+			Error: errors.New("embedding file '/etc/hello-world/config.yaml' for container 'hello': open fixtures/not_existing.txt: no such file or directory"),
 		},
 	}
 

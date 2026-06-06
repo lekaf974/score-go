@@ -91,8 +91,6 @@ containers:
         noExpand: true
       /etc/hello-world/binary:
         binaryContent: aGVsbG8=
-      /etc/hello-world/short: |
-        short content
     volumes:
       /mnt/data:
         source: ${resources.data}
@@ -176,7 +174,7 @@ resources:
 							"/etc/hello-world/binary": types.ContainerFile{
 								BinaryContent: stringRef("aGVsbG8="),
 							},
-							"/etc/hello-world/short": stringRef("short content\n"),
+							"/etc/hello-world/short": types.ContainerFileShort("short content\n"),
 						},
 						Volumes: types.ContainerVolumes{
 							"/mnt/data": types.ContainerVolume{
@@ -263,6 +261,18 @@ resources:
 				// On Success
 				//
 				assert.NoError(t, err)
+				for name, c := range spec.Containers {
+					for target, f := range c.Files {
+						if cf, isMap := f.(types.ContainerFile); isMap {
+							assert.NotNil(t, cf.Content)
+							assert.Equal(t, "Hello World\n", *cf.Content)
+						} else if cfShort, isShort := f.(types.ContainerFileShort); isShort {
+							assert.Equal(t, "short content\n", string(cfShort))
+						} else {
+							t.Errorf("file '%s' in container '%s' has unexpected type %T", target, name, f)
+						}
+					}
+				}
 				assert.Equal(t, tt.Output, spec)
 			}
 		})

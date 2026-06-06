@@ -66,6 +66,10 @@ type ContainerFile struct {
 	Source *string `json:"source,omitempty" yaml:"source,omitempty" mapstructure:"source,omitempty"`
 }
 
+// The short form of a container file, where the value is the source and the target
+// is the key.
+type ContainerFileShort string
+
 type ContainerFiles map[string]interface{}
 
 // The probe definition. At least one of 'httpGet' or 'exec' must be specified. The
@@ -100,6 +104,10 @@ type ContainerVolume struct {
 	// The external volume reference.
 	Source string `json:"source" yaml:"source" mapstructure:"source"`
 }
+
+// The short form of a container volume, where the value is the source and the
+// target is the key.
+type ContainerVolumeShort string
 
 type ContainerVolumes map[string]interface{}
 
@@ -138,6 +146,110 @@ type HttpProbeHttpHeadersElem struct {
 
 type HttpProbeScheme string
 
+const HttpProbeSchemeHTTP HttpProbeScheme = "HTTP"
+const HttpProbeSchemeHTTPS HttpProbeScheme = "HTTPS"
+
+type Ready string
+
+const ReadyComplete Ready = "complete"
+const ReadyHealthy Ready = "healthy"
+const ReadyStarted Ready = "started"
+
+// The set of Resources associated with this Workload.
+type Resource struct {
+	// An optional specialisation of the Resource type.
+	Class *string `json:"class,omitempty" yaml:"class,omitempty" mapstructure:"class,omitempty"`
+
+	// An optional Resource identifier. The id may be up to 63 characters, including
+	// one or more labels of a-z, 0-9, '-' not starting or ending with '-' separated
+	// by '.'. When two resources share the same type, class, and id, they are
+	// considered the same resource when used across related Workloads.
+	Id *string `json:"id,omitempty" yaml:"id,omitempty" mapstructure:"id,omitempty"`
+
+	// The metadata for the Resource.
+	Metadata ResourceMetadata `json:"metadata,omitempty" yaml:"metadata,omitempty" mapstructure:"metadata,omitempty"`
+
+	// Optional parameters used to provision the Resource in the environment.
+	Params ResourceParams `json:"params,omitempty" yaml:"params,omitempty" mapstructure:"params,omitempty"`
+
+	// The Resource type. This should be a type supported by the Score implementations
+	// being used.
+	Type string `json:"type" yaml:"type" mapstructure:"type"`
+}
+
+// The metadata for the Resource.
+type ResourceMetadata map[string]interface{}
+
+// Optional parameters used to provision the Resource in the environment.
+type ResourceParams map[string]interface{}
+
+// The compute and memory resource limits.
+type ResourcesLimits struct {
+	// The CPU limit as whole or fractional CPUs. 'm' indicates milli-CPUs. For
+	// example 2 or 125m.
+	Cpu *string `json:"cpu,omitempty" yaml:"cpu,omitempty" mapstructure:"cpu,omitempty"`
+
+	// The memory limit in bytes with optional unit specifier. For example 125M or
+	// 1Gi.
+	Memory *string `json:"memory,omitempty" yaml:"memory,omitempty" mapstructure:"memory,omitempty"`
+}
+
+// The network port description.
+type ServicePort struct {
+	// The public service port.
+	Port int `json:"port" yaml:"port" mapstructure:"port"`
+
+	// The transport level protocol. Defaults to TCP.
+	Protocol *ServicePortProtocol `json:"protocol,omitempty" yaml:"protocol,omitempty" mapstructure:"protocol,omitempty"`
+
+	// The internal service port. This will default to 'port' if not provided.
+	TargetPort *int `json:"targetPort,omitempty" yaml:"targetPort,omitempty" mapstructure:"targetPort,omitempty"`
+}
+
+type ServicePortProtocol string
+
+const ServicePortProtocolTCP ServicePortProtocol = "TCP"
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *ServicePortProtocol) UnmarshalJSON(b []byte) error {
+	var v string
+	if err := json.Unmarshal(b, &v); err != nil {
+		return err
+	}
+	var ok bool
+	for _, expected := range enumValues_ServicePortProtocol {
+		if reflect.DeepEqual(v, expected) {
+			ok = true
+			break
+		}
+	}
+	if !ok {
+		return fmt.Errorf("invalid value (expected one of %#v): %#v", enumValues_ServicePortProtocol, v)
+	}
+	*j = ServicePortProtocol(v)
+	return nil
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *Ready) UnmarshalJSON(b []byte) error {
+	var v string
+	if err := json.Unmarshal(b, &v); err != nil {
+		return err
+	}
+	var ok bool
+	for _, expected := range enumValues_Ready {
+		if reflect.DeepEqual(v, expected) {
+			ok = true
+			break
+		}
+	}
+	if !ok {
+		return fmt.Errorf("invalid value (expected one of %#v): %#v", enumValues_Ready, v)
+	}
+	*j = Ready(v)
+	return nil
+}
+
 // UnmarshalJSON implements json.Unmarshaler.
 func (j *ContainerVolume) UnmarshalJSON(b []byte) error {
 	var raw map[string]interface{}
@@ -156,52 +268,48 @@ func (j *ContainerVolume) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-// UnmarshalJSON implements json.Unmarshaler.
-func (j *HttpProbeScheme) UnmarshalJSON(b []byte) error {
-	var v string
-	if err := json.Unmarshal(b, &v); err != nil {
-		return err
-	}
-	var ok bool
-	for _, expected := range enumValues_HttpProbeScheme {
-		if reflect.DeepEqual(v, expected) {
-			ok = true
-			break
-		}
-	}
-	if !ok {
-		return fmt.Errorf("invalid value (expected one of %#v): %#v", enumValues_HttpProbeScheme, v)
-	}
-	*j = HttpProbeScheme(v)
-	return nil
+var enumValues_Ready = []interface{}{
+	"started",
+	"healthy",
+	"complete",
 }
 
-const HttpProbeSchemeHTTP HttpProbeScheme = "HTTP"
-const HttpProbeSchemeHTTPS HttpProbeScheme = "HTTPS"
-
-type Ready string
-
 // UnmarshalJSON implements json.Unmarshaler.
-func (j *HttpProbe) UnmarshalJSON(b []byte) error {
+func (j *Container) UnmarshalJSON(b []byte) error {
 	var raw map[string]interface{}
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return err
 	}
-	if v, ok := raw["path"]; !ok || v == nil {
-		return fmt.Errorf("field path in HttpProbe: required")
+	if v, ok := raw["image"]; !ok || v == nil {
+		return fmt.Errorf("field image in Container: required")
 	}
-	if v, ok := raw["port"]; !ok || v == nil {
-		return fmt.Errorf("field port in HttpProbe: required")
-	}
-	type Plain HttpProbe
+	type Plain Container
 	var plain Plain
 	if err := json.Unmarshal(b, &plain); err != nil {
 		return err
 	}
-	if plain.Host != nil && len(*plain.Host) < 1 {
-		return fmt.Errorf("field %s length: must be >= %d", "host", 1)
+	if len(plain.Image) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "image", 1)
 	}
-	*j = HttpProbe(plain)
+	*j = Container(plain)
+	return nil
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *ExecProbe) UnmarshalJSON(b []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(b, &raw); err != nil {
+		return err
+	}
+	if v, ok := raw["command"]; !ok || v == nil {
+		return fmt.Errorf("field command in ExecProbe: required")
+	}
+	type Plain ExecProbe
+	var plain Plain
+	if err := json.Unmarshal(b, &plain); err != nil {
+		return err
+	}
+	*j = ExecProbe(plain)
 	return nil
 }
 
@@ -227,136 +335,6 @@ func (j *HttpProbeHttpHeadersElem) UnmarshalJSON(b []byte) error {
 	}
 	*j = HttpProbeHttpHeadersElem(plain)
 	return nil
-}
-
-// The compute and memory resource limits.
-type ResourcesLimits struct {
-	// The CPU limit as whole or fractional CPUs. 'm' indicates milli-CPUs. For
-	// example 2 or 125m.
-	Cpu *string `json:"cpu,omitempty" yaml:"cpu,omitempty" mapstructure:"cpu,omitempty"`
-
-	// The memory limit in bytes with optional unit specifier. For example 125M or
-	// 1Gi.
-	Memory *string `json:"memory,omitempty" yaml:"memory,omitempty" mapstructure:"memory,omitempty"`
-}
-
-// UnmarshalJSON implements json.Unmarshaler.
-func (j *ExecProbe) UnmarshalJSON(b []byte) error {
-	var raw map[string]interface{}
-	if err := json.Unmarshal(b, &raw); err != nil {
-		return err
-	}
-	if v, ok := raw["command"]; !ok || v == nil {
-		return fmt.Errorf("field command in ExecProbe: required")
-	}
-	type Plain ExecProbe
-	var plain Plain
-	if err := json.Unmarshal(b, &plain); err != nil {
-		return err
-	}
-	*j = ExecProbe(plain)
-	return nil
-}
-
-const ReadyComplete Ready = "complete"
-const ReadyHealthy Ready = "healthy"
-const ReadyStarted Ready = "started"
-
-// UnmarshalJSON implements json.Unmarshaler.
-func (j *Container) UnmarshalJSON(b []byte) error {
-	var raw map[string]interface{}
-	if err := json.Unmarshal(b, &raw); err != nil {
-		return err
-	}
-	if v, ok := raw["image"]; !ok || v == nil {
-		return fmt.Errorf("field image in Container: required")
-	}
-	type Plain Container
-	var plain Plain
-	if err := json.Unmarshal(b, &plain); err != nil {
-		return err
-	}
-	if len(plain.Image) < 1 {
-		return fmt.Errorf("field %s length: must be >= %d", "image", 1)
-	}
-	*j = Container(plain)
-	return nil
-}
-
-// UnmarshalJSON implements json.Unmarshaler.
-func (j *Ready) UnmarshalJSON(b []byte) error {
-	var v string
-	if err := json.Unmarshal(b, &v); err != nil {
-		return err
-	}
-	var ok bool
-	for _, expected := range enumValues_Ready {
-		if reflect.DeepEqual(v, expected) {
-			ok = true
-			break
-		}
-	}
-	if !ok {
-		return fmt.Errorf("invalid value (expected one of %#v): %#v", enumValues_Ready, v)
-	}
-	*j = Ready(v)
-	return nil
-}
-
-// UnmarshalJSON implements json.Unmarshaler.
-func (j *ContainerFile) UnmarshalJSON(b []byte) error {
-	var raw map[string]interface{}
-	if err := json.Unmarshal(b, &raw); err != nil {
-		return err
-	}
-	type Plain ContainerFile
-	var plain Plain
-	if err := json.Unmarshal(b, &plain); err != nil {
-		return err
-	}
-	if plain.Source != nil && len(*plain.Source) < 1 {
-		return fmt.Errorf("field %s length: must be >= %d", "source", 1)
-	}
-	*j = ContainerFile(plain)
-	return nil
-}
-
-var enumValues_Ready = []interface{}{
-	"started",
-	"healthy",
-	"complete",
-}
-var enumValues_HttpProbeScheme = []interface{}{
-	"HTTP",
-	"HTTPS",
-}
-
-// The metadata for the Resource.
-type ResourceMetadata map[string]interface{}
-
-// Optional parameters used to provision the Resource in the environment.
-type ResourceParams map[string]interface{}
-
-// The set of Resources associated with this Workload.
-type Resource struct {
-	// An optional specialisation of the Resource type.
-	Class *string `json:"class,omitempty" yaml:"class,omitempty" mapstructure:"class,omitempty"`
-
-	// An optional Resource identifier. The id may be up to 63 characters, including
-	// one or more labels of a-z, 0-9, '-' not starting or ending with '-' separated
-	// by '.'. When two resources share the same type, class, and id, they are
-	// considered the same resource when used across related Workloads.
-	Id *string `json:"id,omitempty" yaml:"id,omitempty" mapstructure:"id,omitempty"`
-
-	// The metadata for the Resource.
-	Metadata ResourceMetadata `json:"metadata,omitempty" yaml:"metadata,omitempty" mapstructure:"metadata,omitempty"`
-
-	// Optional parameters used to provision the Resource in the environment.
-	Params ResourceParams `json:"params,omitempty" yaml:"params,omitempty" mapstructure:"params,omitempty"`
-
-	// The Resource type. This should be a type supported by the Score implementations
-	// being used.
-	Type string `json:"type" yaml:"type" mapstructure:"type"`
 }
 
 // UnmarshalJSON implements json.Unmarshaler.
@@ -395,46 +373,77 @@ func (j *Resource) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-type ServicePortProtocol string
-
+var enumValues_HttpProbeScheme = []interface{}{
+	"HTTP",
+	"HTTPS",
+}
 var enumValues_ServicePortProtocol = []interface{}{
 	"TCP",
 	"UDP",
 }
 
 // UnmarshalJSON implements json.Unmarshaler.
-func (j *ServicePortProtocol) UnmarshalJSON(b []byte) error {
+func (j *ContainerFile) UnmarshalJSON(b []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(b, &raw); err != nil {
+		return err
+	}
+	type Plain ContainerFile
+	var plain Plain
+	if err := json.Unmarshal(b, &plain); err != nil {
+		return err
+	}
+	if plain.Source != nil && len(*plain.Source) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "source", 1)
+	}
+	*j = ContainerFile(plain)
+	return nil
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *HttpProbe) UnmarshalJSON(b []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(b, &raw); err != nil {
+		return err
+	}
+	if v, ok := raw["path"]; !ok || v == nil {
+		return fmt.Errorf("field path in HttpProbe: required")
+	}
+	if v, ok := raw["port"]; !ok || v == nil {
+		return fmt.Errorf("field port in HttpProbe: required")
+	}
+	type Plain HttpProbe
+	var plain Plain
+	if err := json.Unmarshal(b, &plain); err != nil {
+		return err
+	}
+	if plain.Host != nil && len(*plain.Host) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "host", 1)
+	}
+	*j = HttpProbe(plain)
+	return nil
+}
+
+const ServicePortProtocolUDP ServicePortProtocol = "UDP"
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *HttpProbeScheme) UnmarshalJSON(b []byte) error {
 	var v string
 	if err := json.Unmarshal(b, &v); err != nil {
 		return err
 	}
 	var ok bool
-	for _, expected := range enumValues_ServicePortProtocol {
+	for _, expected := range enumValues_HttpProbeScheme {
 		if reflect.DeepEqual(v, expected) {
 			ok = true
 			break
 		}
 	}
 	if !ok {
-		return fmt.Errorf("invalid value (expected one of %#v): %#v", enumValues_ServicePortProtocol, v)
+		return fmt.Errorf("invalid value (expected one of %#v): %#v", enumValues_HttpProbeScheme, v)
 	}
-	*j = ServicePortProtocol(v)
+	*j = HttpProbeScheme(v)
 	return nil
-}
-
-const ServicePortProtocolTCP ServicePortProtocol = "TCP"
-const ServicePortProtocolUDP ServicePortProtocol = "UDP"
-
-// The network port description.
-type ServicePort struct {
-	// The public service port.
-	Port int `json:"port" yaml:"port" mapstructure:"port"`
-
-	// The transport level protocol. Defaults to TCP.
-	Protocol *ServicePortProtocol `json:"protocol,omitempty" yaml:"protocol,omitempty" mapstructure:"protocol,omitempty"`
-
-	// The internal service port. This will default to 'port' if not provided.
-	TargetPort *int `json:"targetPort,omitempty" yaml:"targetPort,omitempty" mapstructure:"targetPort,omitempty"`
 }
 
 // UnmarshalJSON implements json.Unmarshaler.

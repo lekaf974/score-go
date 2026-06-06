@@ -29,6 +29,51 @@ import (
 // * embedding container file sources as content
 func Normalize(w *types.Workload, baseDir string) error {
 	for name, c := range w.Containers {
+
+		for target, f := range c.Files {
+			fcf, isContainerFile := f.(types.ContainerFile)
+			if isContainerFile {
+				if fcf.Source != nil {
+					raw, err := readFile(baseDir, *fcf.Source)
+					if err != nil {
+						return fmt.Errorf("embedding file '%s' for container '%s': %w", target, name, err)
+					}
+					fcf.Source = nil
+					if utf8.Valid(raw) {
+						content := string(raw)
+						fcf.Content = &content
+					} else {
+						content := base64.StdEncoding.EncodeToString(raw)
+						fcf.BinaryContent = &content
+					}
+					c.Files[target] = fcf
+				}
+			}
+
+			if !isContainerFile {
+				fcfs, isString := f.(types.ContainerFileShort)
+				if isString {
+					raw, err := readFile(baseDir, string(fcfs))
+					if err != nil {
+						return fmt.Errorf("embedding file '%s' for container '%s': %w", target, name, err)
+					}
+					if utf8.Valid(raw) {
+						c.Files[target] = string(raw)
+					} else {
+						c.Files[target] = base64.StdEncoding.EncodeToString(raw)
+					}
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+// Normalize normalizes the target Workload by:
+// * embedding container file sources as content
+func Normalize2(w *types.Workload, baseDir string) error {
+	for name, c := range w.Containers {
 		for target, f := range c.Files {
 			updated, changed, err := normalizeContainerFile(f, baseDir)
 			if err != nil {

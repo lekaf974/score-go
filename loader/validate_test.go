@@ -195,6 +195,7 @@ func TestValidatePlaceholders(t *testing.T) {
 				"/mnt/one": types.ContainerVolume{
 					Source: "${resources.another-no-exist}",
 				},
+				"/mnt/two": "${resources.no-exist}",
 			},
 			resources: types.WorkloadResources{
 				"res-one": types.Resource{

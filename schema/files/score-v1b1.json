@@ -245,6 +245,11 @@
         }
       ]
     },
+    "containerFileShort": {
+      "description": "The short form of a container file, where the value is the source and the target is the key.",
+      "type": "string",
+      "minLength": 1
+    },
     "containerVolume": {
       "type": "object",
       "additionalProperties": false,
@@ -270,6 +275,11 @@
           "type": "boolean"
         }
       }
+    },
+    "containerVolumeShort": {
+      "description": "The short form of a container volume, where the value is the source and the target is the key.",
+      "type": "string",
+      "minLength": 1
     },
     "container": {
       "description": "The specification of a Container within the Workload.",
@@ -338,7 +348,7 @@
                     ]
                   },
                   {
-                    "type": "string"
+                    "$ref": "#/$defs/containerFileShort"
                   }
                 ]
               }
@@ -374,7 +384,7 @@
                     ]
                   },
                   {
-                    "type": "string"
+                    "$ref": "#/$defs/containerVolumeShort"
                   }
                 ]
               }
