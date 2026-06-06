@@ -293,8 +293,11 @@ containers:
 	assert.NoError(t, err)
 
 	// Apply transforms to expand shorthand before mapping to struct
-	_, err = scoreschema.ApplyCommonUpgradeTransforms(srcMap)
+	changes, err := scoreschema.ApplyCommonUpgradeTransforms(srcMap)
 	assert.NoError(t, err)
+	assert.Len(t, changes, 2)
+	assert.Equal(t, "containers.hello.files./usr/local/conf/app: expanded shorthand content", changes[0])
+	assert.Equal(t, "containers.hello.volumes./mnt/data: expanded shorthand source", changes[1])
 
 	var spec types.Workload
 	err = MapSpec(&spec, srcMap)

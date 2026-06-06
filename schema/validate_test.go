@@ -497,7 +497,7 @@ containers:
 	changes, err := ApplyCommonUpgradeTransforms(obj)
 	assert.NoError(t, err)
 	assert.Len(t, changes, 1)
-	assert.Contains(t, changes[0], "expanded shorthand content")
+	assert.Equal(t, "containers.hello.files./usr/local/conf/app: expanded shorthand content", changes[0])
 
 	// validation should still pass after transforms
 	assert.NoError(t, Validate(obj))
@@ -535,7 +535,7 @@ containers:
 	changes, err := ApplyCommonUpgradeTransforms(obj)
 	assert.NoError(t, err)
 	assert.Len(t, changes, 1)
-	assert.Contains(t, changes[0], "expanded shorthand source")
+	assert.Equal(t, "containers.hello.volumes./mnt/data: expanded shorthand source", changes[0])
 
 	// validation should still pass after transforms
 	assert.NoError(t, Validate(obj))
