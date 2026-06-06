@@ -470,3 +470,106 @@ containers:
 	assert.Equal(t, "line1\nline2", obj["containers"].(map[string]interface{})["hello"].(map[string]interface{})["files"].(map[string]interface{})["/etc/hello-world/config.yaml"].(map[string]interface{})["content"])
 	assert.Equal(t, true, obj["containers"].(map[string]interface{})["hello"].(map[string]interface{})["volumes"].(map[string]interface{})["/mnt/data"].(map[string]interface{})["readOnly"])
 }
+
+func TestApplyCommonUpgradeTransforms_shorthand_files(t *testing.T) {
+	var source = []byte(`
+---
+apiVersion: score.dev/v1b1
+metadata:
+  name: hello-world
+containers:
+  hello:
+    image: busybox
+    files:
+      /usr/local/conf/app: "Hello world"
+      /etc/config.yaml:
+        content: "regular format"
+`)
+
+	var obj map[string]interface{}
+	var dec = yaml.NewDecoder(bytes.NewReader(source))
+	assert.NoError(t, dec.Decode(&obj))
+
+	// shorthand format should pass schema validation directly
+	assert.NoError(t, Validate(obj))
+
+	// apply transforms to expand shorthand
+	changes, err := ApplyCommonUpgradeTransforms(obj)
+	assert.NoError(t, err)
+	assert.Len(t, changes, 1)
+	assert.Contains(t, changes[0], "expanded shorthand content")
+
+	// validation should still pass after transforms
+	assert.NoError(t, Validate(obj))
+
+	// verify the shorthand was expanded correctly
+	files := obj["containers"].(map[string]interface{})["hello"].(map[string]interface{})["files"].(map[string]interface{})
+	assert.Equal(t, map[string]interface{}{"content": "Hello world"}, files["/usr/local/conf/app"])
+	assert.Equal(t, map[string]interface{}{"content": "regular format"}, files["/etc/config.yaml"])
+}
+
+func TestApplyCommonUpgradeTransforms_shorthand_volumes(t *testing.T) {
+	var source = []byte(`
+---
+apiVersion: score.dev/v1b1
+metadata:
+  name: hello-world
+containers:
+  hello:
+    image: busybox
+    volumes:
+      /mnt/data: "volume-name"
+      /mnt/other:
+        source: other-volume
+        readOnly: true
+`)
+
+	var obj map[string]interface{}
+	var dec = yaml.NewDecoder(bytes.NewReader(source))
+	assert.NoError(t, dec.Decode(&obj))
+
+	// shorthand format should pass schema validation directly
+	assert.NoError(t, Validate(obj))
+
+	// apply transforms to expand shorthand
+	changes, err := ApplyCommonUpgradeTransforms(obj)
+	assert.NoError(t, err)
+	assert.Len(t, changes, 1)
+	assert.Contains(t, changes[0], "expanded shorthand source")
+
+	// validation should still pass after transforms
+	assert.NoError(t, Validate(obj))
+
+	// verify the shorthand was expanded correctly
+	volumes := obj["containers"].(map[string]interface{})["hello"].(map[string]interface{})["volumes"].(map[string]interface{})
+	assert.Equal(t, map[string]interface{}{"source": "volume-name"}, volumes["/mnt/data"])
+	assert.Equal(t, map[string]interface{}{"source": "other-volume", "readOnly": true}, volumes["/mnt/other"])
+}
+
+func TestValidateYaml_shorthand_files_and_volumes(t *testing.T) {
+	var source = []byte(`
+---
+apiVersion: score.dev/v1b1
+metadata:
+  name: hello-world
+containers:
+  hello:
+    image: busybox
+    files:
+      /usr/local/conf/app: "Hello world"
+      /etc/config.yaml:
+        content: "regular format"
+        mode: "644"
+    volumes:
+      /mnt/data: "${resources.data}"
+      /mnt/other:
+        source: other-volume
+        readOnly: true
+resources:
+  data:
+    type: volume
+`)
+
+	err := ValidateYaml(bytes.NewReader(source))
+	assert.NoError(t, err)
+}
