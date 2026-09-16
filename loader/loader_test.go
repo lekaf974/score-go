@@ -23,6 +23,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
 
+	scoreschema "github.com/score-spec/score-go/schema"
 	"github.com/score-spec/score-go/types"
 )
 
@@ -264,4 +265,51 @@ resources:
 			}
 		})
 	}
+}
+
+func TestDecodeYaml_shorthand_files_and_volumes(t *testing.T) {
+	var source = []byte(`
+---
+apiVersion: score.dev/v1b1
+metadata:
+  name: hello-world
+containers:
+  hello:
+    image: busybox
+    files:
+      /usr/local/conf/app: "Hello world"
+      /etc/config.yaml:
+        content: "regular format"
+        mode: "644"
+    volumes:
+      /mnt/data: "volume-name"
+      /mnt/other:
+        source: other-volume
+        readOnly: true
+`)
+
+	var srcMap map[string]interface{}
+	err := yaml.NewDecoder(bytes.NewReader(source)).Decode(&srcMap)
+	assert.NoError(t, err)
+
+	// Apply transforms to expand shorthand before mapping to struct
+	changes, err := scoreschema.ApplyCommonUpgradeTransforms(srcMap)
+	assert.NoError(t, err)
+	assert.Len(t, changes, 2)
+	assert.Equal(t, "containers.hello.files./usr/local/conf/app: expanded shorthand content", changes[0])
+	assert.Equal(t, "containers.hello.volumes./mnt/data: expanded shorthand source", changes[1])
+
+	var spec types.Workload
+	err = MapSpec(&spec, srcMap)
+	assert.NoError(t, err)
+
+	assert.Equal(t, types.ContainerFiles{
+		"/usr/local/conf/app": {Content: stringRef("Hello world")},
+		"/etc/config.yaml":    {Content: stringRef("regular format"), Mode: stringRef("644")},
+	}, spec.Containers["hello"].Files)
+
+	assert.Equal(t, types.ContainerVolumes{
+		"/mnt/data":  {Source: "volume-name"},
+		"/mnt/other": {Source: "other-volume", ReadOnly: boolRef(true)},
+	}, spec.Containers["hello"].Volumes)
 }

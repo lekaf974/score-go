@@ -301,13 +301,27 @@
         "files": {
           "type": "object",
           "additionalProperties": {
-            "$ref": "#/$defs/containerFile"
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "$ref": "#/$defs/containerFile"
+              }
+            ]
           }
         },
         "volumes": {
           "type": "object",
           "additionalProperties": {
-            "$ref": "#/$defs/containerVolume"
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "$ref": "#/$defs/containerVolume"
+              }
+            ]
           }
         },
         "before": {

@@ -310,7 +310,7 @@
           }
         },
         "files": {
-          "description": "The extra files to mount into the container. Described as a map of target paths to file details. The array form is deprecated.", 
+          "description": "The extra files to mount into the container. Described as a map of target paths to file details, or a shorthand string value treated as inline content. The array form is deprecated.", 
           "oneOf": [
             {
               "type": "array",
@@ -322,16 +322,23 @@
             {
               "type": "object",
               "additionalProperties": {
-                "allOf": [
+                "oneOf": [
                   {
-                    "not": {
-                      "type": "object",
-                      "additionalProperties": true,
-                      "required": ["target"]
-                    }
+                    "type": "string"
                   },
                   {
-                    "$ref": "#/$defs/containerFile"
+                    "allOf": [
+                      {
+                        "not": {
+                          "type": "object",
+                          "additionalProperties": true,
+                          "required": ["target"]
+                        }
+                      },
+                      {
+                        "$ref": "#/$defs/containerFile"
+                      }
+                    ]
                   }
                 ]
               }
@@ -339,7 +346,7 @@
           ]
         },
         "volumes": {
-          "description": "The volumes to mount. Described as a map of target paths to volume details. The array form is deprecated.",
+          "description": "The volumes to mount. Described as a map of target paths to volume details, or a shorthand string value treated as the volume source. The array form is deprecated.",
           "oneOf": [
             {
               "type": "array",
@@ -351,16 +358,23 @@
             {
               "type": "object",
               "additionalProperties": {
-                "allOf": [
+                "oneOf": [
                   {
-                    "not": {
-                      "type": "object",
-                      "additionalProperties": true,
-                      "required": ["target"]
-                    }
+                    "type": "string"
                   },
                   {
-                    "$ref": "#/$defs/containerVolume"
+                    "allOf": [
+                      {
+                        "not": {
+                          "type": "object",
+                          "additionalProperties": true,
+                          "required": ["target"]
+                        }
+                      },
+                      {
+                        "$ref": "#/$defs/containerVolume"
+                      }
+                    ]
                   }
                 ]
               }
