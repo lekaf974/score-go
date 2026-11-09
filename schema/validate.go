@@ -126,6 +126,16 @@ func ApplyCommonUpgradeTransforms(rawScore map[string]interface{}) ([]string, er
 				changes = append(changes, fmt.Sprintf("containers.%s.files: migrated to object", name))
 			}
 
+			// Support shorthand string values for files: string value is treated as inline content
+			if filesMap, ok := containerStruct["files"].(map[string]interface{}); ok {
+				for target, fileValue := range filesMap {
+					if content, ok := fileValue.(string); ok {
+						filesMap[target] = map[string]interface{}{"content": content}
+						changes = append(changes, fmt.Sprintf("containers.%s.files.%s: expanded shorthand content", name, target))
+					}
+				}
+			}
+
 			// We have fixed the naming of the read_only field. It is now readOnly.
 			if volumesStruct, ok := containerStruct["volumes"].([]interface{}); ok {
 				volumesAsMap := make(map[string]interface{})
@@ -150,6 +160,16 @@ func ApplyCommonUpgradeTransforms(rawScore map[string]interface{}) ([]string, er
 
 				containerStruct["volumes"] = volumesAsMap
 				changes = append(changes, fmt.Sprintf("containers.%s.volumes: migrated to object", name))
+			}
+
+			// Support shorthand string values for volumes: string value is treated as volume source
+			if volumesMap, ok := containerStruct["volumes"].(map[string]interface{}); ok {
+				for target, volumeValue := range volumesMap {
+					if source, ok := volumeValue.(string); ok {
+						volumesMap[target] = map[string]interface{}{"source": source}
+						changes = append(changes, fmt.Sprintf("containers.%s.volumes.%s: expanded shorthand source", name, target))
+					}
+				}
 			}
 		}
 	}

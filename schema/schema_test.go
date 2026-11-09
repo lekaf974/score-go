@@ -504,6 +504,42 @@ func TestSchema(t *testing.T) {
 			Message: "",
 		},
 		{
+			Name: "containers.*.files.* shorthand string is valid",
+			Src: func() map[string]interface{} {
+				src := newTestDocument()
+				var hello = src["containers"].(map[string]interface{})["hello"].(map[string]interface{})
+				hello["files"] = map[string]interface{}{
+					"/etc/config": "inline content",
+				}
+				return src
+			}(),
+			Message: "",
+		},
+		{
+			Name: "containers.*.files.* shorthand empty string is valid",
+			Src: func() map[string]interface{} {
+				src := newTestDocument()
+				var hello = src["containers"].(map[string]interface{})["hello"].(map[string]interface{})
+				hello["files"] = map[string]interface{}{
+					"/etc/config": "",
+				}
+				return src
+			}(),
+			Message: "",
+		},
+		{
+			Name: "containers.*.files.* shorthand integer is invalid",
+			Src: func() map[string]interface{} {
+				src := newTestDocument()
+				var hello = src["containers"].(map[string]interface{})["hello"].(map[string]interface{})
+				hello["files"] = map[string]interface{}{
+					"/etc/config": 42,
+				}
+				return src
+			}(),
+			Message: "/containers/hello/files/~1etc~1config",
+		},
+		{
 			Name: "containers.*.files.*.mode is not set",
 			Src: func() map[string]interface{} {
 				src := newTestDocument()
@@ -512,7 +548,7 @@ func TestSchema(t *testing.T) {
 				file["mode"] = nil
 				return src
 			}(),
-			Message: "/containers/hello/files/~1etc~1hello-world~1config.yaml/mode",
+			Message: "/containers/hello/files/~1etc~1hello-world~1config.yaml",
 		},
 		{
 			Name: "containers.*.files.*.mode is not a string",
@@ -523,7 +559,7 @@ func TestSchema(t *testing.T) {
 				file["mode"] = 12
 				return src
 			}(),
-			Message: "/containers/hello/files/~1etc~1hello-world~1config.yaml/mode",
+			Message: "/containers/hello/files/~1etc~1hello-world~1config.yaml",
 		},
 		{
 			Name: "containers.*.files.*.source is missing",
@@ -558,7 +594,7 @@ func TestSchema(t *testing.T) {
 				file["source"] = ""
 				return src
 			}(),
-			Message: "/containers/hello/files/~1etc~1hello-world~1config.yaml/source",
+			Message: "/containers/hello/files/~1etc~1hello-world~1config.yaml",
 		},
 		{
 			Name: "containers.*.files.*.source is not a string",
@@ -570,7 +606,7 @@ func TestSchema(t *testing.T) {
 				file["source"] = 5
 				return src
 			}(),
-			Message: "/containers/hello/files/~1etc~1hello-world~1config.yaml/source",
+			Message: "/containers/hello/files/~1etc~1hello-world~1config.yaml",
 		},
 		{
 			Name: "containers.*.files.*.binaryContent is bad format",
@@ -582,7 +618,7 @@ func TestSchema(t *testing.T) {
 				file["binaryContent"] = map[string]interface{}{}
 				return src
 			}(),
-			Message: "/containers/hello/files/~1etc~1hello-world~1config.yaml/binaryContent",
+			Message: "/containers/hello/files/~1etc~1hello-world~1config.yaml",
 		},
 		{
 			Name: "containers.*.files.*.noExpand is set to true",
@@ -616,7 +652,7 @@ func TestSchema(t *testing.T) {
 				file["noExpand"] = 5
 				return src
 			}(),
-			Message: "/containers/hello/files/~1etc~1hello-world~1config.yaml/noExpand",
+			Message: "/containers/hello/files/~1etc~1hello-world~1config.yaml",
 		},
 		{
 			Name: "containers.*.files.*.content is missing",
@@ -638,7 +674,7 @@ func TestSchema(t *testing.T) {
 				file["content"] = nil
 				return src
 			}(),
-			Message: "/containers/hello/files/~1etc~1hello-world~1config.yaml/content",
+			Message: "/containers/hello/files/~1etc~1hello-world~1config.yaml",
 		},
 		{
 			Name: "containers.*.files.*.content is not a string",
@@ -649,7 +685,7 @@ func TestSchema(t *testing.T) {
 				file["content"] = 5
 				return src
 			}(),
-			Message: "/containers/hello/files/~1etc~1hello-world~1config.yaml/content",
+			Message: "/containers/hello/files/~1etc~1hello-world~1config.yaml",
 		},
 		{
 			Name: "containers.*.files.*.content is an empty array",
@@ -660,7 +696,7 @@ func TestSchema(t *testing.T) {
 				file["content"] = []interface{}{}
 				return src
 			}(),
-			Message: "/containers/hello/files/~1etc~1hello-world~1config.yaml/content",
+			Message: "/containers/hello/files/~1etc~1hello-world~1config.yaml",
 		},
 		{
 			Name: "containers.*.files.*.content is an array of strings",
@@ -674,7 +710,7 @@ func TestSchema(t *testing.T) {
 				}
 				return src
 			}(),
-			Message: "/containers/hello/files/~1etc~1hello-world~1config.yaml/content",
+			Message: "/containers/hello/files/~1etc~1hello-world~1config.yaml",
 		},
 
 		// containers.*.volumes
@@ -700,6 +736,30 @@ func TestSchema(t *testing.T) {
 			Message: "",
 		},
 		{
+			Name: "containers.*.volumes.* shorthand string is valid",
+			Src: func() map[string]interface{} {
+				src := newTestDocument()
+				var hello = src["containers"].(map[string]interface{})["hello"].(map[string]interface{})
+				hello["volumes"] = map[string]interface{}{
+					"/mnt/data": "volume-name",
+				}
+				return src
+			}(),
+			Message: "",
+		},
+		{
+			Name: "containers.*.volumes.* shorthand integer is invalid",
+			Src: func() map[string]interface{} {
+				src := newTestDocument()
+				var hello = src["containers"].(map[string]interface{})["hello"].(map[string]interface{})
+				hello["volumes"] = map[string]interface{}{
+					"/mnt/data": 42,
+				}
+				return src
+			}(),
+			Message: "/containers/hello/volumes/~1mnt~1data",
+		},
+		{
 			Name: "containers.*.volumes.*.source is missing",
 			Src: func() map[string]interface{} {
 				src := newTestDocument()
@@ -719,7 +779,7 @@ func TestSchema(t *testing.T) {
 				volumes["source"] = nil
 				return src
 			}(),
-			Message: "/containers/hello/volumes/~1mnt~1data/source",
+			Message: "/containers/hello/volumes/~1mnt~1data",
 		},
 		{
 			Name: "containers.*.volumes.*.source is not a string",
@@ -730,7 +790,7 @@ func TestSchema(t *testing.T) {
 				volumes["source"] = 12
 				return src
 			}(),
-			Message: "/containers/hello/volumes/~1mnt~1data/source",
+			Message: "/containers/hello/volumes/~1mnt~1data",
 		},
 		{
 			Name: "containers.*.volumes.*.path is not set",
@@ -741,7 +801,7 @@ func TestSchema(t *testing.T) {
 				volumes["path"] = nil
 				return src
 			}(),
-			Message: "/containers/hello/volumes/~1mnt~1data/path",
+			Message: "/containers/hello/volumes/~1mnt~1data",
 		},
 		{
 			Name: "containers.*.volumes.*.path is not a string",
@@ -752,7 +812,7 @@ func TestSchema(t *testing.T) {
 				volumes["path"] = 12
 				return src
 			}(),
-			Message: "/containers/hello/volumes/~1mnt~1data/path",
+			Message: "/containers/hello/volumes/~1mnt~1data",
 		},
 		{
 			Name: "containers.*.volumes.*.readOnly is not set",
@@ -763,7 +823,7 @@ func TestSchema(t *testing.T) {
 				volumes["readOnly"] = nil
 				return src
 			}(),
-			Message: "/containers/hello/volumes/~1mnt~1data/readOnly",
+			Message: "/containers/hello/volumes/~1mnt~1data",
 		},
 		{
 			Name: "containers.*.volumes.*.readOnly is not a boolean",
@@ -774,7 +834,7 @@ func TestSchema(t *testing.T) {
 				volumes["readOnly"] = 12
 				return src
 			}(),
-			Message: "/containers/hello/volumes/~1mnt~1data/readOnly",
+			Message: "/containers/hello/volumes/~1mnt~1data",
 		},
 
 		// containers.*.resources
